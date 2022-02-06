@@ -12,22 +12,38 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
-public class WordCount {
+public class NullCount {
 
+   // Map operation
+   /*
+      map(k=line number, v=line)
+         If v contains null pointer; then
+            emit (NULL, 1)
+   */
    public static class Map extends Mapper<LongWritable, Text, Text, IntWritable> {
       private final static IntWritable one = new IntWritable(1);
       private Text word = new Text();
 
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
          String line = value.toString();
-         StringTokenizer tokenizer = new StringTokenizer(line);
-         while (tokenizer.hasMoreTokens()) {
+         //If line contains null pointer
+         if(line.contains("NullPointerException")){
+            StringTokenizer tokenizer = new StringTokenizer("NULL");
             word.set(tokenizer.nextToken());
+            // emit (NULL, 1)
             context.write(word, one);
          }
       }
    }
 
+   //   Reduce operation
+   /*
+      Reduce(k,list<v> values)
+         Int TotalNullpointers= 0;
+         for v in values
+            TotalNullpointers= TotalNullpointers+ v
+         emit TotalNullpointers
+   */
    public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
 
       public void reduce(Text key, Iterable<IntWritable> values, Context context)
@@ -43,9 +59,9 @@ public class WordCount {
    public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
 
-      Job job = new Job(conf, "wordcount");
+      Job job = new Job(conf, "nullcount");
 
-      job.setJarByClass(WordCount.class);
+      job.setJarByClass(NullCount.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(IntWritable.class);
 
